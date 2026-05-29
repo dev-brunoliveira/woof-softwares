@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Woof Finance - Dashboard Financeiro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabler-icons@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <h1 class="titulo">Dashboard Financeiro</h1>
+  
+  <div id="app">
+    <!-- AUTH SCREEN -->
+    <div id="screen-auth" class="screen active">
+      <div class="auth-wrap">
+        <div class="auth-card">
+          <div class="auth-logo">Woof<span>Finance</span></div>
+          <div class="auth-sub">Controle sua vida de forma inteligente</div>
+          
+          <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchTab('login')">Entrar</button>
+            <button class="auth-tab" onclick="switchTab('register')">Cadastrar</button>
+          </div>
+          
+          <div id="auth-err" class="err-msg"></div>
+          
+          <!-- LOGIN FORM -->
+          <div id="login-form">
+            <div class="field">
+              <label>E-mail</label>
+              <input type="email" id="l-email" placeholder="seu@email.com" />
+            </div>
+            <div class="field">
+              <label>Senha</label>
+              <input type="password" id="l-pass" placeholder="••••••" />
+            </div>
+            <button class="btn-primary" onclick="doLogin()">Entrar</button>
+          </div>
+          
+          <!-- REGISTER FORM -->
+          <div id="register-form" style="display: none;">
+            <div class="field">
+              <label>Nome Completo</label>
+              <input type="text" id="r-name" placeholder="Seu nome" />
+            </div>
+            <div class="field">
+              <label>E-mail</label>
+              <input type="email" id="r-email" placeholder="seu@email.com" />
+            </div>
+            <div class="field">
+              <label>Senha</label>
+              <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres" />
+            </div>
+            <button class="btn-primary" onclick="doRegister()">Criar Conta</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD SCREEN -->
+    <div id="screen-dash" class="screen">
+      <div class="dash-header">
+        <div class="dash-logo">Woof <span>Finance</span></div>
+        <div class="dash-user">
+          <div class="avatar" id="user-avatar">--</div>
+          <span id="user-name"></span>
+          <button class="btn-sm" onclick="doLogout()">
+            <i class="ti ti-logout"></i> Sair
+          </button>
+        </div>
+      </div>
+
+      <div class="dash-body">
+        <!-- METRICS -->
+        <div class="metrics">
+          <div class="metric-card">
+            <div class="metric-label">Saldo Total</div>
+            <div class="metric-val" id="m-saldo">R$ 0,00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Créditos</div>
+            <div class="metric-val positive" id="m-cred">R$ 0,00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Débitos</div>
+            <div class="metric-val negative" id="m-deb">R$ 0,00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Transações</div>
+            <div class="metric-val" id="m-count">0</div>
+          </div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="card-title">Créditos vs Débitos por Mês</div>
+            <div style="position: relative; height: 250px;">
+              <canvas id="barChart" role="img" aria-label="Gráfico de barras créditos e débitos mensais">Sem dados</canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="card-title">Composição do Extrato</div>
+            <div style="position: relative; height: 250px;">
+              <canvas id="pieChart" role="img" aria-label="Gráfico pizza composição créditos e débitos">Sem dados</canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- UPLOAD SECTION -->
+        <div class="upload-section">
+          <div class="card-title">Importar Extrato CSV</div>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()" ondragover="event.preventDefault(); this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+            <i class="ti ti-file-upload"></i>
+            <p>Clique ou arraste seu arquivo CSV aqui</p>
+            <span>Formatos suportados: .csv</span>
+          </div>
+          <input type="file" id="csv-input" accept=".csv" style="display: none;" onchange="handleFile(event)" />
+          <div class="csv-hint">
+            O CSV deve ter colunas como: <code>data</code>, <code>descrição</code>, <code>valor</code> — ou <code>date</code>, <code>description</code>, <code>amount</code>. Valores negativos = débito, positivos = crédito. Também detecta coluna de <code>tipo</code> (crédito/débito).
+          </div>
+        </div>
+
+        <!-- TRANSACTIONS TABLE -->
+        <div class="txn-table">
+          <div class="txn-table-header">
+            <span class="txn-table-title">Transações</span>
+            <div class="filter-row">
+              <input type="text" id="search-input" placeholder="Buscar..." oninput="renderTable()" />
+              <select id="filter-type" onchange="renderTable()">
+                <option value="all">Todos</option>
+                <option value="credit">Créditos</option>
+                <option value="debit">Débitos</option>
+              </select>
+              <button class="btn-sm" onclick="clearData()" title="Limpar dados">
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div id="table-body">
+            <div class="empty-state">
+              <i class="ti ti-file-import"></i>
+              Importe um extrato CSV para começar
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="success-toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>
